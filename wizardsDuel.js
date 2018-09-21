@@ -17,6 +17,7 @@ class playerWizard extends Sprite {
         this.defineAnimation("right", 3, 5);
         this.defineAnimation("left", 9, 11);
         this.speedWhenWalking = 100;
+        this.spellCastTime = 0;
 
     }
     handleDownArrowKey() {
@@ -29,26 +30,30 @@ class playerWizard extends Sprite {
         this.speed = this.speedWhenWalking;
         this.angle = 90;
     }
-    
-  handleGameLoop() {
+
+    handleGameLoop() {
         this.y = Math.max(5, this.y); //Picks the greatest of 0, or the current value of y and assigns it to y
         this.y = Math.min(game.displayHeight - this.height, this.y); //Keeps Marcus in the display window
         this.x = Math.max(0, this.x);
-        this.x = Math.min(game.displayWidth - this.width , this.x);
+        this.x = Math.min(game.displayWidth - this.width, this.x);
         this.speed = 0;
     }
-    
+
     handleSpacebar() {
-        let spell = new Spell();
-        spell.name = "A spell from Marcus";
-        spell.setImage("marcusSpellSheet.png");
-        spell.x = this.x + this.width;
-        spell.y = this.y;
-        spell.angle = 0;
-        this.playAnimation("right");
+        let now = game.getTime(); // get the number of seconds since the game has started
+        if (now - this.spellCastTime >= 2) {
+            this.spellCastTime = now;
+            let spell = new Spell();
+            spell.name = "A spell from Marcus";
+            spell.setImage("marcusSpellSheet.png");
+            spell.x = this.x + this.width;
+            spell.y = this.y;
+            spell.angle = 0;
+            this.playAnimation("right");
+        }
     }
 
-  
+
 
 }
 
@@ -71,7 +76,7 @@ class Spell extends Sprite {
     }
 
     handleCollision(otherSprite) {
-        if (this.getImage() !== otherSprite.getImage()) {
+        if (this.getImage() != otherSprite.getImage()) {
             let verticaloffset = Math.abs(this.y - otherSprite.y);
             if (verticaloffset < this.height / 2) {
                 game.removeSprite(this);
@@ -100,6 +105,7 @@ class NonPlayerWizard extends Sprite {
     }
     handleGameLoop() {
         if (this.y <= 0) {
+
             // Upward motion has reached top, so turn down
             this.y = 0;
             this.angle = 270;
@@ -111,13 +117,15 @@ class NonPlayerWizard extends Sprite {
             this.angle = 90;
             this.playAnimation("up", true);
         }
-        let spell = new Spell();
-        spell.name = "A spell cast by the Stranger";
-        spell.setImage("strangerSpellSheet.png");
-        spell.x = this.x + this.width;
-        spell.y = this.y;
-        spell.angle = 180;
-        this.playAnimation("left");
+        if (Math.random() < 0.01) {
+            let spell = new Spell();
+            spell.name = "A spell cast by the Stranger";
+            spell.setImage("strangerSpellSheet.png");
+            spell.x = this.x - this.width;
+            spell.y = this.y;
+            spell.angle = 180;
+            this.playAnimation("left");
+        }
     }
     handleAnimationEnd() {
         if (this.angle === 90) {
@@ -132,7 +140,7 @@ class NonPlayerWizard extends Sprite {
 
 let stranger = new NonPlayerWizard();
 
-class Fireball extends Sprite() {
+class Fireball extends Sprite {
     constructor(deadSprite) {
         super();
         this.name = "A ball of fire";
@@ -140,8 +148,17 @@ class Fireball extends Sprite() {
         this.y = deadSprite.y;
         this.setImage("fireballSheet.png");
         game.removeSprite(deadSprite);
-        this.defineAnimation("explode", 0, 16);
+        this.defineAnimation("explode", 0, 15);
         this.playAnimation("explode");
     }
-
+    handleAnimationEnd() {
+        game.removeSprite(this);
+        if (!game.isActiveSprite(stranger)) {
+            game.end("Congratulations!\n\nMarcus has defeated the mysterious" +
+                "\nstranger in the dark cloak!");
+        }
+        if (!game.isActiveSprite(marcus)) {
+            game.end("Marcus is defeated by the mysterious\nstranger in the dark cloak!\n\nBetter luck next time.");
+        }
+    }
 }
